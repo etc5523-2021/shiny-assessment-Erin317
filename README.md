@@ -5,7 +5,7 @@
 
 Rename the above to something more meaningful.
 
-## YOUR NAME + student id
+## Xinying Xu 30464145
 
 This is a template that contains materials to create a shiny gadget
 application for assessment 2. You will need the following packages
