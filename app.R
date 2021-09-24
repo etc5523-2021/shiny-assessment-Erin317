@@ -54,15 +54,15 @@ ui <- fluidPage(
       "table",  icon = icon("table"),
       fluidRow(
         column(
-          6,
-          offset = 1,
-          # also possible to use plotly here
+          6, offset = 0.5,
           selectizeInput("countries", "Select Countries",
                          choices = unique(tidy_fuels$country),
                          multiple = TRUE)
         ),
-        dataTableOutput("table"),
-        p(class = 'text-center', downloadButton('tabledata', 'Download Filtered Data')),
+        column(
+          12,offset = 0.5,
+          dataTableOutput("table")
+        )
       ),
       sliderInput("year2",
                   "Year",
@@ -76,53 +76,32 @@ ui <- fluidPage(
     tabPanel(
       "about",
       icon = icon("question"),
-      fluidRow(
-        box(
-          title = "About me 🥰",
-          width = "6 col-lg-4",
+      fixedRow(
+        column(
+          10,offset = 1,
+          tags$h1("About me 🥰"),
+          tags$p(HTML("Hi👋! I'm Xinying!")),
+          tags$p(HTML("I'm a postgraduate student majoring at business analytics from Monash university,",
+                      "obsessed with data visualization, interactive reporting, data structuring and cleaning,",
+                      "and statistical and machine learning.",
+                      "I really love this shinyapp, hope you like it!")),
+          tags$p(HTML("We'll reproduce interactive graphics from <a href=\"https://databank.worldbank.org/reports.aspx?dsid=2&series=EG.CFT.ACCS.ZS\">Our World in Data</a>. on the topic of air pollution,
+                    And the data was collected from <a href = \"https://datacatalog.worldbank.org/dataset/world-development-indicators\">The World Bank</a>,
+                    to explore the relationships between the wealth of a country and the proportion of the population that have access to clean cooking fuels, from 2000 to 2016. You will have the opportunity to explore this here 💖")),
+          tags$h1("About data 📄"),
+          tags$p(HTML("Access to clean fuels and technologies for cooking is the proportion of total population primarily
+                    using clean cooking fuels and technologies for cooking. Under WHO guidelines,
+                    kerosene is excluded from clean cooking fuels.")),
+          tags$p(HTML("Statistical concept and methodology: Data for access to clean fuels and technologies for cooking are based on the the World Health Organization’s (WHO) Global Household Energy Database.
+        They are collected among different sources: only data from nationally representative household surveys (including national censuses) were used.
+        Survey sources include Demographic and Health Surveys (DHS) and Living Standards Measurement Surveys (LSMS), Multi-Indicator Cluster Surveys (MICS), the World Health Survey (WHS),
+        other nationally developed and implemented surveys, and various government agencies (for example, ministries of energy and utilities).
+        To develop the historical evolution of clean fuels and technologies use rates, a multi-level non-parametrical mixed model, using both fixed and random effects,
+        was used to derive polluting fuel use estimates for 150 countries (ref. Bonjour S, Adair-Rohani H, Wolf J, Bruce NG, Mehta S, Prüss-Ustün A, Lahiff M, Rehfuess EA, Mishra V, Smith KR.
+        Solid Fuel Use for Household Cooking: Country and Regional Estimates for 1980-2010.
+        For a country with no data, estimates are derived by using regional trends or assumed to be universal access if a country is classified as developed by the United Nations.")),
+          tags$h1("About this Shinyapp 🖇"),
           tags$p(
-            "Hi👋! I'm Xinying!"),
-          tags$p(
-            "I'm a postgraduate student majoring at business analytics from Monash university,",
-            "obsessed with data visualization, interactive reporting, data structuring and cleaning,",
-            "and statistical and machine learning.",
-            "I really love this shinyapp, hope you like it!"
-          ),
-          tags$p(
-            "We'll reproduce interactive graphics from",
-            tags$a(href = "https://databank.worldbank.org/reports.aspx?dsid=2&series=EG.CFT.ACCS.ZS", "Our World in Data,", target = "_blank"),
-            "on the topic of air pollution.",
-            "And the data was collected from ",
-            tags$a(href = "https://datacatalog.worldbank.org/dataset/world-development-indicators", "The World Bank,", target = "_blank"),
-            "to explore the relationships between the wealth of a country and the proportion of the population that have access to clean cooking fuels, from 2000 to 2016.",
-            "You will have the opportunity to explore this here 💖"
-          )
-        ),
-        box(
-          title = "About data 📄",
-          status = "danger",
-          width = "6 col-lg-4",
-          tags$p(
-            "Access to clean fuels and technologies for cooking is the proportion of total population primarily
-              using clean cooking fuels and technologies for cooking. Under WHO guidelines,
-              kerosene is excluded from clean cooking fuels."
-          ),
-          tags$p("Statistical concept and methodology: Data for access to clean fuels and technologies for cooking are based on the the World Health Organization’s (WHO) Global Household Energy Database.
-                   They are collected among different sources: only data from nationally representative household surveys (including national censuses) were used.
-                   Survey sources include Demographic and Health Surveys (DHS) and Living Standards Measurement Surveys (LSMS), Multi-Indicator Cluster Surveys (MICS), the World Health Survey (WHS),
-                   other nationally developed and implemented surveys, and various government agencies (for example, ministries of energy and utilities).
-                   To develop the historical evolution of clean fuels and technologies use rates, a multi-level non-parametrical mixed model, using both fixed and random effects,
-                   was used to derive polluting fuel use estimates for 150 countries (ref. Bonjour S, Adair-Rohani H, Wolf J, Bruce NG, Mehta S, Prüss-Ustün A, Lahiff M, Rehfuess EA, Mishra V, Smith KR.
-                   Solid Fuel Use for Household Cooking: Country and Regional Estimates for 1980-2010. Environ Health Perspect (): .doi:10.1289/ehp.1205987.).
-                   For a country with no data, estimates are derived by using regional trends or assumed to be universal access if a country is classified as developed by the United Nations."
-          )
-        ),
-        box(
-          title = "About this Shinyapp 🖇",
-          # status = "primary",
-          width = "6 col-lg-4",
-          tags$p(
-            class = "text-center",
             tags$a(
               href = "https://www.r-project.org",
               target = "_blank",
@@ -201,13 +180,13 @@ server <- function(input, output, session) {
 
 # table data
   dytable_args <- reactive({
-     if(!is.null(input$countries)) tidy_fuels <- tidy_fuels %>% filter(country %in% input$countries)
-     if(input$small_countries){
-       tidy_fuels %>% filter(year %in% c(2000:input$year2),
-                             total_population > 1000000)
-     } else{
-       tidy_fuels %>% filter(year %in% c(2000:input$year2))
-     }
+    if(!is.null(input$countries)) tidy_fuels <- tidy_fuels %>% filter(country %in% input$countries)
+    if(input$small_countries){
+      tidy_fuels %>% filter(year %in% c(2000:input$year2),
+                            total_population > 1000000)
+    } else{
+      tidy_fuels %>% filter(year %in% c(2000:input$year2))
+    }
   })
 
 # slider bar
@@ -304,23 +283,18 @@ server <- function(input, output, session) {
      arrange(-year) %>%
      select(-tooltip,-code)
    DT::datatable(dytable,
-                 width="50%",
                  rownames = FALSE,
+                 extensions = 'Buttons',
                  options = list(initComplete = JS(
                       "function(settings, json) {",
                       "$(this.api().table().header()).css({'background-color': '#4B6587',
-                            'color': 'white'});","}")),
+                            'color': 'white'});","}"),
+                      dom = 'Bfrtip',
+                      buttons = c('csv', 'excel', 'pdf')),
                  colnames = c("Cotinent", "Country", "Year","Cooking (%)","GDP/capital ($)", "Population"))
 
   })
 
-  output$tabledata = downloadHandler('cooking-filtered.csv', content = function(file) {
-    df <- tidy_fuels %>%
-      filter(year %in% input$year2,
-             country %in% input$countries) %>%
-      select(-tooltip)
-    write.csv(df, file)
-  })
 }
 
 runApp(shinyApp(ui, server))
