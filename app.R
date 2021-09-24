@@ -3,7 +3,8 @@ library(DT)
 library(tidyverse)
 library(plotly)
 library(here)
-library(RColorBrewer)
+library(rworldmap)
+library(crosstalk)
 options(scipen=999)
 
 # once you've prepared the data uncomment this line
@@ -26,7 +27,6 @@ ui <- fluidPage(
       fluidRow(
         column(
           2,
-
           checkboxInput("linear_scale",
                         "Linearize x-axis",
                         value = FALSE
@@ -34,17 +34,7 @@ ui <- fluidPage(
         ),
         column(
           6,
-          offset = 1,
-          # also possible to use plotly here
-          selectizeInput("countries", "Select Countries",
-            choices = unique(tidy_fuels$country),
-            multiple = TRUE,
-
-          )
-        ),
-        column(
-          2,
-          offset = 1,
+          # offset = 1,
           checkboxInput("small_countries",
             "Hide countries < 1 million",
             value = FALSE
@@ -72,22 +62,28 @@ server <- function(input, output, session) {
 
 # plot data
   selected_args <- reactive({
-    if(!is.null(input$countries)) tidy_fuels <- tidy_fuels %>% filter(country %in% input$countries) # filter country
+    if(input$small_countries){
+      tidy_fuels %>%
+        filter(year == input$year,
+               total_population > 1000000)
+    }
+    else{
       tidy_fuels %>%
         filter(year == input$year)
+    }
   })
+
 
 # table data
   dytable_args <- reactive({
-     if(!is.null(input$countries)) tidy_fuels <- tidy_fuels %>% filter(country %in% input$countries)
+    # if(!is.null(input$countries)) tidy_fuels <- tidy_fuels %>% filter(country %in% input$countries)
      if(input$small_countries){
-       tidy_fuels %>% filter(total_population > 1000000)
+       tidy_fuels %>% filter(year %in% c(2000:input$year),
+                             total_population > 1000000)
      } else{
-       tidy_fuels
+       tidy_fuels %>% filter(year %in% c(2000:input$year))
      }
   })
-
-
 
 
   # Define outputs here
@@ -99,129 +95,65 @@ server <- function(input, output, session) {
                    "North America" = "#CAB8FF",
                    "South America" = "#FFC069",
                    "Oceania" = "#B3E283")
- # four situations
+    # four situations
     if(input$linear_scale){
-      # linear and small plot
-      if(input$small_countries){
-        plot1_small <- selected_args() %>%
-          filter(total_population > 1000000) %>%
-          highlight_key(~country) %>%
-          ggplot(aes(gdp_per_capita,
-                     cooking,
-                     color = continent,
-                     size = total_population,
-                     text = tooltip)) +
-          geom_point(alpha = .7)+
-          scale_y_continuous(labels = scales::label_percent(scale = 1))+
-          labs(title = "Access to clean fuels for cooking vs. GDP per capita, 2000 to 2016",
-               x = "GDP per captia($)",
-               y = "Access to clean fuels and technologies for cooking",
-               size = "Popoulation",
-               color = "")+
-          scale_size(range = c(1, 10),
-                     guide = "none")+
-          theme_classic()+
-          theme(axis.line = element_line(color = "grey85"),
-                axis.ticks = element_line(color = "grey85"))+
-          scale_color_manual(values = mypalette)
+      # linear plot
+      plot <- selected_args() %>%
+        highlight_key(~country,"Select Countries") %>%
+        ggplot(aes(gdp_per_capita,
+                   cooking,
+                   color = continent,
+                   size = total_population,
+                   text = tooltip)) +
+        geom_point(alpha = .7)+
+        scale_y_continuous(labels = scales::label_percent(scale = 1))+
+        labs(title = "Access to clean fuels for cooking vs. GDP per capita, 2000 to 2016",
+             x = "GDP per captia($)",
+             y = "Access to clean fuels and technologies for cooking",
+             size = "Popoulation",
+             color = "")+
+        scale_size(range = c(1, 10),
+                   guide = "none")+
+        theme_classic()+
+        theme(axis.line = element_line(color = "grey85"),
+              axis.ticks = element_line(color = "grey85"))+
+        scale_color_manual(values = mypalette)
 
-        p1_small <- ggplotly(plot1_small, tooltip = "text") %>%
-          config(displaylogo = FALSE,
-                 modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "zoom2d", "pan2d"))
-        p1_small
-      }
-      else{
-        # only linear plot
-        plot1 <- selected_args() %>%
-          highlight_key(~country) %>%
-          ggplot(aes(gdp_per_capita,
-                     cooking,
-                     color = continent,
-                     size = total_population,
-                     text = tooltip)) +
-          geom_point(alpha = .7)+
-          scale_y_continuous(labels = scales::label_percent(scale = 1))+
-          labs(title = "Access to clean fuels for cooking vs. GDP per capita, 2000 to 2016",
-               x = "GDP per captia($)",
-               y = "Access to clean fuels and technologies for cooking",
-               size = "Popoulation",
-               color = "")+
-          scale_size(range = c(1, 10),
-                     guide = "none")+
-          theme_classic()+
-          theme(axis.line = element_line(color = "grey85"),
-                axis.ticks = element_line(color = "grey85"))+
-          scale_color_manual(values = mypalette)
+      p <- highlight(ggplotly(plot, tooltip = "text") %>%
+        config(displaylogo = FALSE, modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "zoom2d", "pan2d")),
+        selectize = TRUE, persistent = TRUE)
+      p
 
-        p1 <- ggplotly(plot1, tooltip = "text") %>%
-          config(displaylogo = FALSE,
-                 modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "zoom2d", "pan2d"))
-        p1
-      }
     }
-
     else{
-      if(input$small_countries){
-        # log and small plot
-        plot2_small <- selected_args() %>%
-          filter(total_population > 1000000) %>%
-          highlight_key(~country) %>%
-          ggplot(aes(gdp_per_capita,
-                     cooking,
-                     color = continent,
-                     size = total_population,
-                     text = tooltip)) +
-          geom_point(alpha = .7)+
-          scale_x_log10()+
-          scale_size_continuous(trans = "log10") +
-          scale_y_continuous(labels = scales::label_percent(scale = 1))+
-          labs(title = "Access to clean fuels for cooking vs. GDP per capita, 2000 to 2016",
-               x = "GDP per captia($)",
-               y = "Access to clean fuels and technologies for cooking",
-               size = "Popoulation",
-               color = "")+
-          scale_size(range = c(1, 10),
-                     guide = "none")+
-          theme_classic()+
-          theme(axis.line = element_line(color = "grey85"),
-                axis.ticks = element_line(color = "grey85"))+
-          scale_color_manual(values = mypalette)
+      # log plot
+      plot <- selected_args() %>%
+        highlight_key(~country,"Select Countries") %>%
+        ggplot(aes(gdp_per_capita,
+                   cooking,
+                   color = continent,
+                   size = total_population,
+                   text = tooltip)) +
+        geom_point(alpha = .7)+
+        scale_x_log10()+
+        scale_size_continuous(trans = "log10") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1))+
+        labs(title = "Access to clean fuels for cooking vs. GDP per capita, 2000 to 2016",
+             x = "GDP per captia($)",
+             y = "Access to clean fuels and technologies for cooking",
+             size = "Popoulation",
+             color = "")+
+        scale_size(range = c(1, 10),
+                   guide = "none")+
+        theme_classic()+
+        theme(axis.line = element_line(color = "grey85"),
+              axis.ticks = element_line(color = "grey85"))+
+        scale_color_manual(values = mypalette)
 
-        p2_small <- ggplotly(plot2_small, tooltip = "text") %>%
-          config(displaylogo = FALSE,
-                 modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "zoom2d", "pan2d"))
-        p2_small
-      }
-      else{
-        # only log plot
-        plot2 <- selected_args() %>%
-          highlight_key(~country) %>%
-          ggplot(aes(gdp_per_capita,
-                     cooking,
-                     color = continent,
-                     size = total_population,
-                     text = tooltip)) +
-          geom_point(alpha = .7)+
-          scale_x_log10()+
-          scale_size_continuous(trans = "log10") +
-          scale_y_continuous(labels = scales::label_percent(scale = 1))+
-          labs(title = "Access to clean fuels for cooking vs. GDP per capita, 2000 to 2016",
-               x = "GDP per captia($)",
-               y = "Access to clean fuels and technologies for cooking",
-               size = "Popoulation",
-               color = "")+
-          scale_size(range = c(1, 10),
-                     guide = "none")+
-          theme_classic()+
-          theme(axis.line = element_line(color = "grey85"),
-                axis.ticks = element_line(color = "grey85"))+
-          scale_color_manual(values = mypalette)
-
-        p2 <- ggplotly(plot2, tooltip = "text") %>%
-          config(displaylogo = FALSE,
-                 modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "zoom2d", "pan2d"))
-        p2
-      }
+      p <- highlight(ggplotly(plot, tooltip = "text") %>%
+                       config(displaylogo = FALSE, modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "zoom2d", "pan2d")),
+                     selectize = TRUE, persistent = TRUE)
+      p
     }
   })
 
@@ -230,9 +162,15 @@ server <- function(input, output, session) {
      mutate(cooking = format(round(cooking,2),nsmall = 2),
             total_population = scales::comma(total_population, accuracy = 1000),
             gdp_per_capita = format(round(gdp_per_capita,2),nsmall = 2)) %>%
+     group_by(country) %>%
      arrange(-year) %>%
      select(-tooltip,-code)
-    DT::datatable(dytable, rownames = FALSE,
+   table <- DT::datatable(dytable,
+                  rownames = FALSE,
+                  options = list(initComplete = JS(
+                      "function(settings, json) {",
+                      "$(this.api().table().header()).css({'background-color': '#4B6587',
+                            'color': 'white'});","}")),
                   colnames = c("Cotinent", "Country", "Year","Cooking (%)","GDP/capital ($)", "Population"))
   })
 }
