@@ -114,7 +114,7 @@ ui <- fluidPage(
               href = "https://shiny.rstudio.com/",
               target = "_blank",
               tags$img(class = "image-responsive",
-                       src = "https://github.com/rstudio/shiny/blob/master/man/figures/logo.png?raw=true",
+                       src = "https://github.com/rstudio/shiny/blob/main/man/figures/logo.png",
                        style = "max-width: 150px; margin-left: 2em;"
               )
             ),
@@ -122,7 +122,7 @@ ui <- fluidPage(
               href = "https://ggplot2.tidyverse.org/",
               target = "_blank",
               tags$img(class = "image-responsive",
-                       src = "https://github.com/tidyverse/ggplot2/blob/master/man/figures/logo.png?raw=true",
+                       src = "https://github.com/tidyverse/ggplot2/blob/master/man/figures/logo.png",
                        style = "max-width: 150px; margin-left: 2em;"
               )
             )
